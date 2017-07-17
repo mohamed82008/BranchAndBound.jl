@@ -115,7 +115,7 @@ function BBProblem(problem::T, SolutionType::DataType, ChoiceType::DataType,
         solve=Ref{Function}(solvejump), getchoices=Ref{Function}(getchoicesmip))
 end
 
-function JuMPProblem(model::JuMP.Model; tol::Float64=1E-6, mip=false)
+function JuMPProblem(model::JuMP.Model; tol::Float64=1E-8, mip=false)
     if mip
         varcat = copy(model.colCat)
         map((i)->((model.colCat[i] == :Int || model.colCat[i] == :Bin) && (model.colCat[i] = :Cont); return), 
@@ -128,8 +128,8 @@ end
 
 BBProblem(problem::JuMPProblem) = BBProblem(problem, Vector{Float64}, AbstractChoice{:JuMP}, 
     sense(problem), isfeasible, solve, getchoices)
-function BBProblem(model::JuMP.Model; mip=false)
-    problem = JuMPProblem(model, mip=mip)
+function BBProblem(model::JuMP.Model; mip=false, tol=1E-8)
+    problem = JuMPProblem(model, tol=tol, mip=mip)
     return BBProblem(problem, Vector{Float64}, AbstractChoice{:JuMP}, sense(problem), 
         isfeasible, solve, getchoices)
 end

@@ -1,16 +1,25 @@
+
+function BB(root_problem::BBProblem{T,S,C,:Max}; alg=:dfs_sb) where {T,S,C<:AbstractChoice}
+    if alg == :dfs_simple
+        return dfs_simple(root_problem)
+    elseif alg == :dfs_sb
+        return dfs_sb(root_problem)
+    end
+end
+
 """
 Applies a depth-first search branch and bound algorithm on `root_problem`.
 Returns `solution::Nullable{S}`, `optimal_value::Float64`
-If the problem is `:infeasible` and `solution` will be empty.
+If the problem is `:infeasible`, `solution` will be empty.
 """
-function BBAlgDFS(root_problem::BBProblem{T,S,C,:Max}) where {T,S,C<:AbstractChoice}
+function dfs_simple(root_problem::BBProblem{T,S,C,:Max}) where {T,S,C<:AbstractChoice}
     root_problem.solution, root_problem.optimal_value = solve(root_problem)
 
     if root_problem.solution.hasvalue
         root_problem.status = isfeasible(root_problem) ? (:feasible) : (:infeasible)
     end
     if root_problem.status == :infeasible && root_problem.optimal_value.value > root_problem.inner_bound.x
-        BBAlgDFSRecur(root_problem)
+        dfs_simple_recur(root_problem)
     elseif root_problem.status == :feasible
         root_problem.inner_bound.x = root_problem.optimal_value.value
         root_problem.best_solution.x = root_problem.solution
@@ -32,14 +41,14 @@ function BBAlgDFS(root_problem::BBProblem{T,S,C,:Max}) where {T,S,C<:AbstractCho
     return root_problem.best_solution.x, root_problem.inner_bound.x
 end    
 
-function BBAlgDFS(root_problem::BBProblem{T,S,C,:Min}) where {T,S,C<:AbstractChoice}
+function dfs_simple(root_problem::BBProblem{T,S,C,:Min}) where {T,S,C<:AbstractChoice}
     root_problem.solution, root_problem.optimal_value = solve(root_problem)
 
     if root_problem.solution.hasvalue
         root_problem.status = isfeasible(root_problem) ? (:feasible) : (:infeasible)
     end
     if root_problem.status == :infeasible && root_problem.optimal_value.value < root_problem.inner_bound.x
-        BBAlgDFSRecur(root_problem)
+        dfs_simple_recur(root_problem)
     elseif root_problem.status == :feasible
         root_problem.inner_bound.x = root_problem.optimal_value.value
         root_problem.best_solution.x = root_problem.solution
@@ -61,7 +70,7 @@ function BBAlgDFS(root_problem::BBProblem{T,S,C,:Min}) where {T,S,C<:AbstractCho
     return root_problem.best_solution.x, root_problem.inner_bound.x
 end    
 
-function BBAlgDFSRecur(root_problem::BBProblem{T,S,C,:Max}) where {T,S,C<:AbstractChoice}
+function dfs_simple_recur(root_problem::BBProblem{T,S,C,:Max}) where {T,S,C<:AbstractChoice}
     choices = getchoices(root_problem)
     children_outer_bounds = Float64[]
     for choice in choices
@@ -77,7 +86,7 @@ function BBAlgDFSRecur(root_problem::BBProblem{T,S,C,:Max}) where {T,S,C<:Abstra
                     root_problem.inner_bound.x = child_problem.optimal_value.value
                     root_problem.best_solution.x = child_problem.solution
                 elseif child_problem.status == :infeasible && child_problem.optimal_value.value > root_problem.inner_bound.x
-                    BBAlgDFSRecur(child_problem)
+                    dfs_simple_recur(child_problem)
                 end
             end
             #Removing last choice added before moving on, because all problems share the same choices vector to save memory.
@@ -98,7 +107,7 @@ function BBAlgDFSRecur(root_problem::BBProblem{T,S,C,:Max}) where {T,S,C<:Abstra
     return
 end
 
-function BBAlgDFSRecur(root_problem::BBProblem{T,S,C,:Min}) where {T,S,C<:AbstractChoice}
+function dfs_simple_recur(root_problem::BBProblem{T,S,C,:Min}) where {T,S,C<:AbstractChoice}
     choices = getchoices(root_problem)
     children_outer_bounds = Float64[]
     for choice in choices
@@ -114,7 +123,7 @@ function BBAlgDFSRecur(root_problem::BBProblem{T,S,C,:Min}) where {T,S,C<:Abstra
                     root_problem.inner_bound.x = child_problem.optimal_value.value
                     root_problem.best_solution.x = child_problem.solution
                 elseif child_problem.status == :infeasible && child_problem.optimal_value.value < root_problem.inner_bound.x
-                    BBAlgDFSRecur(child_problem)
+                    dfs_simple_recur(child_problem)
                 end
             end
             #Removing last choice added before moving on, because all problems share the same choices vector to save memory.
@@ -178,12 +187,12 @@ function getchoicesmip(problem::BBProblem{JuMPProblem,Vector{Float64},AbstractCh
     ind = infeasvarinds[i]
     lb = lbs[i]
     ub = ceil(solution[ind])
-    if ub < model(problem).colUpper[ind]
+    if ub < model(problem).colUpper[ind] - tol(problem)
         choice1 = JuMPVarChoice(problem.relaxation.x, ind, :(>=), ub)
     else
         choice1 = JuMPVarChoice(problem.relaxation.x, ind, :(=), ub)
     end
-    if lb > model(problem).colLower[ind]
+    if lb > model(problem).colLower[ind] + tol(problem)
         choice2 = JuMPVarChoice(problem.relaxation.x, ind, :(<=), lb)
     else
         choice2 = JuMPVarChoice(problem.relaxation.x, ind, :(=), lb)

@@ -1,20 +1,23 @@
 # BranchAndBound
 ## Overview
 
-This package is under development. It currently only implements a simple depth first search (DFS) algorithm using a recursion-based implementation of the branch and bound algorithm.
+This package is under development. It currently only implements 2 algorithms:
 
-For MIPs, the most fractional variable is used for branching by default and the larger bound is solved first, e.g. x >= 1 before x <= 0. The following work items are yet to be done:
+1. A simple depth first search (DFS) algorithm using a recursion-based implementation of the branch and bound algorithm. For MIPs, the most fractional variable is used for branching by default and the larger bound is solved first, e.g. x >= 1 before x <= 0.
+2. Strong branching in the recursion implementation with specialization to MIPs.
 
-1. Strong branching in the recursive implementation
-2. Pseudo-cost branching in the recursive implementation
-3. MIP standard cutting planes, e.g. Gromory's cut
-4. Integration with jlSimplex.jl for MILPs
-5. Specilization for network optimization
-6. Randomness and restarts
-7. A flattened implementation to allow free node selection and dynamic parallelism
-8. Parallel implementation
-9. Constraint propagation
-10. Advanced node and variable scoring techniques
+The following work items are yet to be done:
+
+- Pseudo-cost branching in the recursive implementation
+- MIP standard cutting planes, e.g. Gromory's cut
+- Integration with jlSimplex.jl for MILPs
+- Specilization for network optimization
+- Randomness and restarts
+- Making algorithm structs for easy parameter specification
+- A flattened implementation to allow free node selection and dynamic parallelism
+- Parallel implementation
+- Constraint propagation and feasibility pump
+- Advanced node and variable scoring techniques
 
 ## Example
 
@@ -36,5 +39,6 @@ m = Model(solver=ClpSolver(SolveType=0));
 @objective(m, Max, sum(worth[i]*x[i] for i = 1:n));
 
 bbproblem = BBProblem(m, mip=true);
-@time my_solution, my_optimal_value = BBAlgDFS(bbproblem);
+@time my_solution, my_optimal_value = BB(bbproblem, alg=:dfs_sb) #Strong branching
+#@time my_solution, my_optimal_value = BB(bbproblem, alg=:dfs_simple) #Simple dfs
 ```

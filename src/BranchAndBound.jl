@@ -6,10 +6,11 @@ using JuMP
 using Nulls
 
 include("types.jl")
-include("dfs_algs.jl")
+include("dfs_simple.jl")
+include("dfs_sb.jl")
 include("commit_uncommit.jl")
 include("util.jl")
 
-export BBProblem, BBAlgDFS, JuMPProblem
+export BBProblem, BB
 
 end
